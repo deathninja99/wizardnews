@@ -1,4 +1,5 @@
 const express = require("express");
+var timeAgo = require("node-time-ago");
 // const morgan = require("morgan");
 const PostBank = require("./postBank");
 const app = express();
@@ -29,7 +30,7 @@ app.get("/", (req, res) => {
       <small>(by ${posts.name})</small>
       </P>
       <small class = "news-info">
-      ${posts.upvotes} upvotes | ${posts.data}
+      ${posts.upvotes} upvotes | ${timeAgo(Date.now + posts.date)}
       </small>
     </div>`
       )
@@ -39,28 +40,44 @@ app.get("/", (req, res) => {
 `);
 });
 
-app.get("/posts/:id", (req, res) => {
-  const id = req.params.id;
-  const post = PostBank.find(id);
-  if (!post.id) {
-    res.status(404);
-    res.send(404);
-  }
-  res.send(`<!DOCTYPE html>
-  <head>
+app.get("/posts/:id", (req, res, next) => {
+  try {
+    const id = req.params.id;
+    const post = PostBank.find(id);
+    res.send(`<!DOCTYPE html>
+    <head>
     <title>Wizard News</title>
-    <link rel="stylesheet" href="./public/style.css" />
-  </head>
-  <body>
-  <p>
-  ${post.title}
-  <br />
-  ${post.name}
-  </p>
-  </body>
-</html>`);
+    <link rel="stylesheet" href="../../public/style.css" />
+    </head>
+    <body>
+    <div class = news-list>
+    <header><img src="../../public/logo.png" />WizardNews</header>
+    </div>
+    <a href = "../../">back to home</a>
+    <p>
+    ${post.title}
+    <br />
+    ${post.content}
+    <br />
+    ${post.name}
+    </p>
+    </body>
+    </html>`);
+  } catch (error) {
+    throw new error("something went wrong");
+    next(error);
+  }
 });
-const PORT = 1337;
+app.use((error, req, res, next) => {
+  console.log(error);
+  res.send(error);
+});
+
+// Catch All
+app.get("*", (req, res, next) => {
+  res.status(404).send("Oops, that endpoint doesn't exist!");
+});
+const { PORT = 1337 } = process.env;
 
 app.listen(PORT, () => {
   console.log(`App listening in port ${PORT}`);
